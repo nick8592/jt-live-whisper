@@ -2498,6 +2498,7 @@ def _make_denoiser(denoise):
         return _identity
 
     def _denoise(audio, sr):
+        import numpy as np
         peak = np.max(np.abs(audio))
         out = _nr_reduce(y=audio, sr=sr, stationary=True, prop_decrease=0.8)
         peak_after = np.max(np.abs(out))
