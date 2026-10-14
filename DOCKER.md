@@ -28,16 +28,21 @@ Python 3.12 的容器裡，適合在 Linux 主機上以 WebUI 常駐，或用命
 docker build -t jt-live-whisper .
 ```
 
-執行（只發布到本機，較安全）：
+執行（單機使用，用 `--network host`）：
 
 ```bash
 docker run -d --name jt-live-whisper \
-  -p 127.0.0.1:19781:19781 \
+  --network host \
   -v jtlw-data:/data \
   jt-live-whisper
 ```
 
 瀏覽器開啟 <http://localhost:19781>。
+
+> **為什麼用 `--network host`？** WebUI 依「連線來源」判斷權限：來自 `127.0.0.1` 視為本機（完整權限），
+> 其他來源只給唯讀（沒設密碼時顯示「唯讀模式 / 等待主機開始辨識...」）。用 `-p` 發布埠時，連線經過
+> Docker NAT，容器看到的是 bridge 閘道（如 `172.17.0.1`）而不是 `127.0.0.1`，本機瀏覽器也會被當成遠端。
+> `--network host`（Linux）讓連線真的來自 `127.0.0.1`，本機才能用完整功能。
 
 ## 使用 docker compose
 
@@ -66,20 +71,29 @@ docker compose up -d --build
 | `JTLW_WEBUI_ADMIN_PASSWORD` | 首次啟動時設定 WebUI 管理密碼 |
 | `JTLW_DATA_DIR` | 持久化目錄，預設 `/data` |
 
-## 安全性
+## 權限與安全性
 
-WebUI 綁 `0.0.0.0`。**預設只把埠發布到 `127.0.0.1`**；若要讓區網其他電腦連線，
-請同時設定 `JTLW_WEBUI_ALLOWED_IPS` 與 `JTLW_WEBUI_READ_PASSWORD`，例如：
+WebUI 依「連線來源」決定角色：
+
+| 來源 | 沒設密碼 | 設了唯讀密碼 | 設了管理密碼 |
+|---|---|---|---|
+| 本機（`127.0.0.1`） | 完整權限 | 完整權限 | 完整權限 |
+| 其他（遠端） | **唯讀**（顯示「唯讀模式 / 等待主機開始辨識...」） | 需唯讀密碼才能觀看 | 可用管理密碼取得完整權限 |
+
+- **單機使用**：用 `--network host`（見上），localhost 即本機，不需密碼。
+- **要讓區網其他電腦連線**：遠端預設只有唯讀，需設定密碼（與來源限制），例如：
 
 ```bash
-docker run -d --name jt-live-whisper \
-  -p 19781:19781 \
+docker run -d --name jt-live-whisper --network host \
   -e JTLW_WEBUI_ALLOWED_IPS=192.168.1.0/24 \
   -e JTLW_WEBUI_READ_PASSWORD=change-me \
   -e JTLW_WEBUI_ADMIN_PASSWORD=change-me \
   -v jtlw-data:/data \
   jt-live-whisper
 ```
+
+WebUI 綁 `0.0.0.0`，`--network host` 會讓它聽在主機所有介面；沒設密碼時區網任何人都能
+唯讀觀看。請搭配 `JTLW_WEBUI_ALLOWED_IPS` 或密碼限制。
 
 ## GPU 加速（CUDA）
 

@@ -18,10 +18,11 @@ services:
     container_name: jt-live-whisper
     restart: unless-stopped
 
-    # 預設只發布到本機（127.0.0.1），避免同網段未授權存取。
-    # 要讓區網其他電腦使用，改成 "19781:19781"，並設定下方 allowed_ips 與密碼。
-    ports:
-      - "127.0.0.1:19781:19781"
+    # 用 host 網路，讓本機瀏覽器（127.0.0.1）被視為本機、取得完整權限。
+    # 若改成 -p 發布埠，連線會經 Docker NAT，容器看到的是 bridge 閘道而非 127.0.0.1，
+    # WebUI 會變成「唯讀模式」；那樣就必須設定下面的密碼。
+    # 注意 --network host 下不需要 ports:，WebUI 直接綁在主機的 19781。
+    network_mode: host
 
     environment:
       # 可連線的來源網段（逗號分隔，支援 CIDR）。留空＝不限制；本機一律放行。

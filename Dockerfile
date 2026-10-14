@@ -14,9 +14,8 @@
 # 建置（CUDA 版，需要 NVIDIA 驅動 + nvidia-container-toolkit 才能在執行時用 GPU）：
 #   docker build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 \
 #                -t jt-live-whisper:cuda .
-# 執行：
-#   docker run -d --name jt-live-whisper -p 127.0.0.1:19781:19781 \
-#              -v jtlw-data:/data jt-live-whisper
+# 執行（單機用 --network host，本機瀏覽器才有完整權限）：
+#   docker run -d --name jt-live-whisper --network host -v jtlw-data:/data jt-live-whisper
 #   GPU：再加 --gpus all
 # 或：  docker compose up -d
 #
