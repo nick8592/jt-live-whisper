@@ -13,12 +13,13 @@ Python 3.12 的容器裡，適合在 Linux 主機上以 WebUI 常駐，或用命
 | 離線音檔批次處理 | ✅ | WebUI 上傳或 `./start.sh --input`，支援 mp3/wav/m4a/flac 等 |
 | WebUI（瀏覽器介面） | ✅ | 預設埠 19781 |
 | 講者辨識、會議摘要 | ✅ | 摘要需另接 LLM 伺服器（Ollama 等） |
-| **即時系統音訊字幕/翻譯** | ❌ | 需要宿主機的聲音裝置；容器沒有音效卡，擷取不到系統音訊 |
+| **即時系統音訊字幕/翻譯** | ✅（Linux，需掛 socket） | 把主機的 PipeWire/PulseAudio socket 掛進容器即可（見「即時系統音訊」） |
 | 懸浮字幕（PySide/PyQt 視窗） | ❌ | 需要圖形桌面，伺服器版不含 |
 | GPU 加速 | ⚠️ 需 CUDA 版建置 | 預設為 CPU 版；以 cu124 建置並用 `--gpus all` 執行即可 GPU 加速（見下） |
 
-即時模式之所以不可用，是因為它擷取的是「執行 jt-live-whisper 那台機器正在播放的聲音」；
-容器內沒有 PipeWire/PulseAudio 的系統音訊來源。離線處理音訊檔完全不受影響。
+即時模式擷取的是「執行 jt-live-whisper 那台機器正在播放的聲音」。容器裡要做這件事，
+必須把主機的 PipeWire/PulseAudio socket 掛進來（見下），讓容器內的 `parec`／`pactl`
+連到主機的音訊伺服器、抓預設喇叭的 `.monitor`。沒掛 socket 時即時模式才不可用。
 
 ## 快速開始
 
@@ -94,6 +95,44 @@ docker run -d --name jt-live-whisper --network host \
 
 WebUI 綁 `0.0.0.0`，`--network host` 會讓它聽在主機所有介面；沒設密碼時區網任何人都能
 唯讀觀看。請搭配 `JTLW_WEBUI_ALLOWED_IPS` 或密碼限制。
+
+## 即時系統音訊（Linux）
+
+把主機的 PipeWire/PulseAudio socket、cookie 與執行期目錄掛進容器，容器內的 `parec`
+就能抓到主機預設喇叭的 `.monitor`（也就是電腦正在播的聲音）：
+
+```bash
+docker run -d --name jt-live-whisper --network host --gpus all \
+  -e XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+  -e PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native" \
+  -v "$XDG_RUNTIME_DIR/pulse:$XDG_RUNTIME_DIR/pulse" \
+  -v "$HOME/.config/pulse/cookie:/root/.config/pulse/cookie:ro" \
+  -v jtlw-data:/data \
+  jt-live-whisper:cuda
+```
+
+（`docker-compose.yml` 已含這幾行，`docker compose up -d` 即生效。）
+
+驗證容器內看得到主機的裝置：
+
+```bash
+docker exec jt-live-whisper pactl info
+docker exec jt-live-whisper pactl list short sources | grep monitor
+docker exec jt-live-whisper ./start.sh --list-devices
+```
+
+之後用終端機跑即時字幕（例：英翻中）：
+
+```bash
+docker run -it --rm --network host --gpus all \
+  -e XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" -e PULSE_SERVER="unix:$XDG_RUNTIME_DIR/pulse/native" \
+  -v "$XDG_RUNTIME_DIR/pulse:$XDG_RUNTIME_DIR/pulse" \
+  -v "$HOME/.config/pulse/cookie:/root/.config/pulse/cookie:ro" \
+  --entrypoint ./start.sh jt-live-whisper:cuda --mode en2zh -m small
+```
+
+或開 WebUI 的「即時模式」（完整權限時）。**前提**：宿主機正在用 PipeWire/PulseAudio 播放
+聲音（喇叭或耳機），且該音訊伺服器可被容器透過上述 socket 連到。
 
 ## GPU 加速（CUDA）
 

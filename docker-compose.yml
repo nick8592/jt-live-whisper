@@ -3,8 +3,8 @@
 #   docker compose up -d --build
 #   瀏覽器開啟 http://localhost:19781
 #
-# 容器內不支援「即時系統音訊擷取」（需要宿主機聲音裝置）；
 # 離線音檔處理（WebUI 上傳 / ./start.sh --input）正常運作。
+# 即時系統音訊擷取（Linux）：把主機的 PipeWire/PulseAudio socket 掛進容器即可（見 volumes）。
 
 services:
   jt-live-whisper:
@@ -30,6 +30,9 @@ services:
       # 首次啟動時設定 WebUI 密碼（只存 sha256）。設定後遠端就需要密碼。
       # JTLW_WEBUI_READ_PASSWORD: "change-me"
       # JTLW_WEBUI_ADMIN_PASSWORD: "change-me"
+      # 即時系統音訊用（Linux）：指向主機的 PipeWire/PulseAudio
+      XDG_RUNTIME_DIR: ${XDG_RUNTIME_DIR:-/run/user/1000}
+      PULSE_SERVER: unix:${XDG_RUNTIME_DIR:-/run/user/1000}/pulse/native
 
     volumes:
       # 設定、錄音、紀錄（持久化）
@@ -37,6 +40,10 @@ services:
       # 模型快取（映像已烘入，這裡只是避免升級容器時重新下載）
       - jtlw-hf:/root/.cache/huggingface
       - jtlw-share:/root/.local/share
+      # 即時系統音訊（Linux）：主機的 PulseAudio/PipeWire socket 與 cookie。
+      # 不需要即時模式時可以刪掉這三行，改成 -p 發布埠或維持 host 網路皆可。
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/pulse:${XDG_RUNTIME_DIR:-/run/user/1000}/pulse
+      - ${HOME}/.config/pulse/cookie:/root/.config/pulse/cookie:ro
 
     # GPU（選配）：需先安裝 NVIDIA 驅動 + nvidia-container-toolkit，並用
     # CUDA 版建置（上面的 TORCH_INDEX_URL 改成 cu124）。之後啟用以下區塊：

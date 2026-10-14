@@ -5,9 +5,10 @@
 # 以 Ubuntu 24.04 + Python 3.12 建立可重現的環境，安裝流程沿用專案自己的
 # install.sh --server，之後升級只要重建映像即可。
 #
-# 容器內沒有桌面、沒有 systemd、沒有音效卡，因此：
+# 容器內沒有桌面、沒有 systemd，因此：
 #   ✅ 可用：離線音檔批次處理、WebUI、講者辨識、會議摘要、字幕轉發
-#   ❌ 不可用：即時系統音訊擷取（即時字幕/翻譯）── 需要宿主機的聲音裝置
+#   ✅ 可用（Linux）：即時系統音訊擷取 ── 將主機的 PipeWire/PulseAudio socket 掛進容器即可
+#   ❌ 不可用：懸浮字幕視窗（需要圖形桌面）
 #
 # 建置（CPU 版，預設）：
 #   docker build -t jt-live-whisper .
@@ -42,6 +43,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         openssh-client \
         ca-certificates \
         libportaudio2 \
+        pulseaudio-utils \
         build-essential \
         tini
 
