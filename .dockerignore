@@ -1,0 +1,29 @@
+# 版本控制與虛擬環境
+.git
+.gitignore
+venv/
+
+# 使用者產出與暫存
+logs/
+recordings/
+api_data/
+tts_voices/
+tts_tmp/
+tts_data/
+.desktop_shortcut
+.whisper_output.txt
+.tmp_*
+.mute_*
+.webui_pause
+.webui_interp_*
+__pycache__/
+*.pyc
+*.pyo
+
+# 文件與網站素材（安裝流程不需要，縮小建置內容）
+images/
+docs/
+
+# 容器定義檔（Dockerfile / compose 不需要進映像；docker/ 進入點要保留）
+Dockerfile
+docker-compose.yml

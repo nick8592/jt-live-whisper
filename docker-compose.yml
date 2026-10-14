@@ -1,0 +1,49 @@
+# jt-live-whisper ── docker compose（伺服器版）
+#
+#   docker compose up -d --build
+#   瀏覽器開啟 http://localhost:19781
+#
+# 容器內不支援「即時系統音訊擷取」（需要宿主機聲音裝置）；
+# 離線音檔處理（WebUI 上傳 / ./start.sh --input）正常運作。
+
+services:
+  jt-live-whisper:
+    build: .
+    image: jt-live-whisper:latest
+    container_name: jt-live-whisper
+    restart: unless-stopped
+
+    # 預設只發布到本機（127.0.0.1），避免同網段未授權存取。
+    # 要讓區網其他電腦使用，改成 "19781:19781"，並設定下方 allowed_ips 與密碼。
+    ports:
+      - "127.0.0.1:19781:19781"
+
+    environment:
+      # 可連線的來源網段（逗號分隔，支援 CIDR）。留空＝不限制；本機一律放行。
+      JTLW_WEBUI_ALLOWED_IPS: ""
+      # 首次啟動時設定 WebUI 密碼（只存 sha256）。設定後遠端就需要密碼。
+      # JTLW_WEBUI_READ_PASSWORD: "change-me"
+      # JTLW_WEBUI_ADMIN_PASSWORD: "change-me"
+
+    volumes:
+      # 設定、錄音、紀錄（持久化）
+      - jtlw-data:/data
+      # 模型快取（映像已烘入，這裡只是避免升級容器時重新下載）
+      - jtlw-hf:/root/.cache/huggingface
+      - jtlw-share:/root/.local/share
+
+    # GPU（選配，尚未支援）：目前的預設映像為 CPU 版，未內含 CUDA 版
+    # PyTorch / cuBLAS / cuDNN，因此即使宿主機有 NVIDIA GPU 也仍是 CPU 辨識。
+    # 待提供 CUDA 版映像後，再啟用以下設定：
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  jtlw-data:
+  jtlw-hf:
+  jtlw-share:

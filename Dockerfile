@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1
+#
+# jt-live-whisper ── Docker 映像（伺服器版）
+#
+# 以 Ubuntu 24.04 + Python 3.12 建立可重現的環境，安裝流程沿用專案自己的
+# install.sh --server，之後升級只要重建映像即可。
+#
+# 容器內沒有桌面、沒有 systemd、沒有音效卡，因此：
+#   ✅ 可用：離線音檔批次處理、WebUI、講者辨識、會議摘要、字幕轉發
+#   ❌ 不可用：即時系統音訊擷取（即時字幕/翻譯）── 需要宿主機的聲音裝置
+#
+# 建置：docker build -t jt-live-whisper .
+# 執行：docker run -d --name jt-live-whisper -p 127.0.0.1:19781:19781 \
+#             -v jtlw-data:/data jt-live-whisper
+# 或：  docker compose up -d
+#
+# Author: jt-live-whisper contributors
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    PYTHONUNBUFFERED=1
+
+# 系統套件：對應 install-linux.sh 伺服器模式的需求，不含桌面專用套件
+# （libxcb-cursor0、fonts-noto-cjk、xdg-utils、PyQt6 等只有桌面版才需要）
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
+ && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+        python3-dev \
+        ffmpeg \
+        curl \
+        unzip \
+        openssh-client \
+        ca-certificates \
+        libportaudio2 \
+        build-essential \
+        tini
+
+WORKDIR /opt/jt-live-whisper
+
+# 複製程式碼。模型不在此，於下方安裝步驟下載並烘進映像，容器即可離線執行。
+COPY . .
+
+# 安裝（伺服器模式）。容器內沒有 TTY，統一由 /dev/null 提供 EOF，
+# 讓「是否設定 GPU 伺服器」等互動提問自動採用預設值（略過）。
+# 容器內沒有 systemd，install-linux.sh 會自動略過服務註冊。
+RUN --mount=type=cache,target=/root/.cache/pip \
+    bash install.sh --server < /dev/null
+
+EXPOSE 19781
+VOLUME ["/data"]
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/opt/jt-live-whisper/docker/entrypoint.sh"]
+CMD ["--webui"]
