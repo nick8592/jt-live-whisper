@@ -9,9 +9,15 @@
 #   ✅ 可用：離線音檔批次處理、WebUI、講者辨識、會議摘要、字幕轉發
 #   ❌ 不可用：即時系統音訊擷取（即時字幕/翻譯）── 需要宿主機的聲音裝置
 #
-# 建置：docker build -t jt-live-whisper .
-# 執行：docker run -d --name jt-live-whisper -p 127.0.0.1:19781:19781 \
-#             -v jtlw-data:/data jt-live-whisper
+# 建置（CPU 版，預設）：
+#   docker build -t jt-live-whisper .
+# 建置（CUDA 版，需要 NVIDIA 驅動 + nvidia-container-toolkit 才能在執行時用 GPU）：
+#   docker build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 \
+#                -t jt-live-whisper:cuda .
+# 執行：
+#   docker run -d --name jt-live-whisper -p 127.0.0.1:19781:19781 \
+#              -v jtlw-data:/data jt-live-whisper
+#   GPU：再加 --gpus all
 # 或：  docker compose up -d
 #
 # Author: jt-live-whisper contributors
@@ -44,6 +50,17 @@ WORKDIR /opt/jt-live-whisper
 
 # 複製程式碼。模型不在此，於下方安裝步驟下載並烘進映像，容器即可離線執行。
 COPY . .
+
+# PyTorch 變體：install.sh 依「建置時偵測不偵測得到 nvidia-smi」決定裝 CPU 還是 CUDA 版
+# torch，但 docker build 拿不到 GPU，一律會裝 CPU 版。這裡先把想要的 torch 裝進 venv，
+# install.sh 看到 torch 已存在就會略過，於是可以自由選擇 CPU 或 CUDA 版。
+#   CPU（預設）：https://download.pytorch.org/whl/cpu
+#   CUDA      ：https://download.pytorch.org/whl/cu124（依驅動可換 cu121 / cu126）
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m venv /opt/jt-live-whisper/venv \
+ && /opt/jt-live-whisper/venv/bin/pip install --disable-pip-version-check --upgrade pip "setuptools<81" wheel \
+ && /opt/jt-live-whisper/venv/bin/pip install --disable-pip-version-check torch --index-url "${TORCH_INDEX_URL}"
 
 # 安裝（伺服器模式）。容器內沒有 TTY，統一由 /dev/null 提供 EOF，
 # 讓「是否設定 GPU 伺服器」等互動提問自動採用預設值（略過）。

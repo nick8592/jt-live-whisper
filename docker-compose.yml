@@ -8,7 +8,12 @@
 
 services:
   jt-live-whisper:
-    build: .
+    build:
+      context: .
+      args:
+        # CPU（預設）。要做 CUDA 版改成 https://download.pytorch.org/whl/cu124，
+        # 並啟用下面的 GPU 區塊，再執行 `docker compose up -d --build`。
+        TORCH_INDEX_URL: https://download.pytorch.org/whl/cpu
     image: jt-live-whisper:latest
     container_name: jt-live-whisper
     restart: unless-stopped
@@ -32,9 +37,8 @@ services:
       - jtlw-hf:/root/.cache/huggingface
       - jtlw-share:/root/.local/share
 
-    # GPU（選配，尚未支援）：目前的預設映像為 CPU 版，未內含 CUDA 版
-    # PyTorch / cuBLAS / cuDNN，因此即使宿主機有 NVIDIA GPU 也仍是 CPU 辨識。
-    # 待提供 CUDA 版映像後，再啟用以下設定：
+    # GPU（選配）：需先安裝 NVIDIA 驅動 + nvidia-container-toolkit，並用
+    # CUDA 版建置（上面的 TORCH_INDEX_URL 改成 cu124）。之後啟用以下區塊：
     # deploy:
     #   resources:
     #     reservations:

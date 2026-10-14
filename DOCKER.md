@@ -15,7 +15,7 @@ Python 3.12 的容器裡，適合在 Linux 主機上以 WebUI 常駐，或用命
 | 講者辨識、會議摘要 | ✅ | 摘要需另接 LLM 伺服器（Ollama 等） |
 | **即時系統音訊字幕/翻譯** | ❌ | 需要宿主機的聲音裝置；容器沒有音效卡，擷取不到系統音訊 |
 | 懸浮字幕（PySide/PyQt 視窗） | ❌ | 需要圖形桌面，伺服器版不含 |
-| GPU 加速 | ❌（目前） | 預設映像為 CPU 版；CUDA 版映像尚未提供 |
+| GPU 加速 | ⚠️ 需 CUDA 版建置 | 預設為 CPU 版；以 cu124 建置並用 `--gpus all` 執行即可 GPU 加速（見下） |
 
 即時模式之所以不可用，是因為它擷取的是「執行 jt-live-whisper 那台機器正在播放的聲音」；
 容器內沒有 PipeWire/PulseAudio 的系統音訊來源。離線處理音訊檔完全不受影響。
@@ -80,6 +80,25 @@ docker run -d --name jt-live-whisper \
   -v jtlw-data:/data \
   jt-live-whisper
 ```
+
+## GPU 加速（CUDA）
+
+需要宿主機已安裝 NVIDIA 驅動與 [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。
+預設映像為 CPU 版；改用 CUDA 版建置即可讓 faster-whisper 使用 GPU：
+
+```bash
+docker build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 \
+  -t jt-live-whisper:cuda .
+docker run -d --name jt-live-whisper --gpus all \
+  -p 127.0.0.1:19781:19781 -v jtlw-data:/data jt-live-whisper:cuda
+```
+
+CUDA 版本對應：`cu124`（預設範例，torch 2.6）適用於驅動 >= 525，本機較新的驅動皆可；
+需要其他 CUDA 版本時改 `TORCH_INDEX_URL` 即可（`cu121` / `cu126` 等）。
+
+> 為什麼不用 `nvidia/cuda` 基底映像？本映像靠 pip 安裝的 `nvidia-*` 套件提供
+> cuBLAS / cuDNN，執行時由 nvidia-container-toolkit 掛入驅動的 `libcuda`；
+> 專案的 `start.sh` 會自動把這些函式庫路徑加進 `LD_LIBRARY_PATH`。
 
 ## 命令列使用
 
