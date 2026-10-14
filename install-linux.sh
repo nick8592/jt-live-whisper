@@ -842,6 +842,8 @@ fix_migrated_config
 [ "$LINUX_MODE" = "desktop" ] && check_moonshine
 [ "$LINUX_MODE" = "desktop" ] && check_argos_model
 check_nllb_model
+check_m2m100_model
+check_madlad_model
 check_faster_whisper_model
 setup_remote_whisper_linux
 install_desktop_entry

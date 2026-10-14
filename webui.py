@@ -1035,6 +1035,8 @@ def _get_config():
     engines = [
         {"value": "llm", "label": "LLM — 品質最好，需 LLM 伺服器"},
         {"value": "nllb", "label": "NLLB — 本機離線，中日韓英互譯（模型非商業授權）"},
+        {"value": "m2m100", "label": "M2M-100 — 本機離線，中日韓英互譯（MIT）"},
+        {"value": "madlad", "label": "MADLAD-400 — 本機離線，中日韓英互譯（Apache-2.0）"},
         {"value": "argos", "label": "Argos — 本機離線，僅英翻中"},
     ]
     # LLM 翻譯模型清單

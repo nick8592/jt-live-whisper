@@ -978,7 +978,8 @@ function _showLiveIn(live){
   const _isRecMode=curCfg.mode==='record';
   $('sCount').style.display=_isRecMode?'none':'';$('bModel').style.display=_isRecMode?'none':'';
   const hasEng=curCfg.engine&&!['en','zh','ja','ko','record'].includes(curCfg.mode);
-  const _eLbl=hasEng?(curCfg.engine==='llm'?'LLM '+(cselVal($('iLlmModel'))||''):'本機 '+curCfg.engine.toUpperCase()):'';
+  const _engNames={nllb:'NLLB',m2m100:'M2M-100',madlad:'MADLAD-400',argos:'Argos'};
+  const _eLbl=hasEng?(curCfg.engine==='llm'?'LLM '+(cselVal($('iLlmModel'))||''):'本機 '+(_engNames[curCfg.engine]||curCfg.engine.toUpperCase())):'';
   $('sEngine').textContent=_eLbl;$('bTrans').style.display=hasEng?'inline-flex':'none';
   // 場景膠囊（即時模式才顯示）
   const _sceneLabels={'meeting':'會議 5s','training':'訓練 8s','presentation':'簡報 12s','subtitle':'字幕 3s'};
@@ -1183,7 +1184,7 @@ const _tips={
   iModel:'較大的模型準確度較高但速度較慢。標有「此裝置適合」的為推薦。標「實驗」的模型只在符合條件時可選（例：Qwen3-ASR 限錄音檔、中英韓單向，且所選的辨識位置跑得了），灰色項目右側會寫原因',
   iScene:'緩衝長度越長句子越完整，越短反應越即時',
   // 語言翻譯
-  iEngine:'LLM 品質最好需伺服器，NLLB/Argos 為本機離線；NLLB 的模型是 CC-BY-NC 4.0 非商業授權，商業使用前請確認授權條款',
+  iEngine:'LLM 品質最好需伺服器；NLLB / M2M-100 / MADLAD-400 / Argos 為本機離線。NLLB 的模型是 CC-BY-NC 4.0 非商業授權，M2M-100 為 MIT、MADLAD-400 為 Apache-2.0，商業使用前請確認授權條款',
   iLlmHost:'Ollama 或 OpenAI 相容伺服器：主機:連接埠，或完整網址（http／https，可含反向代理的路徑，例如 https://llm.example.com/v1；沒寫連接埠時 http＝80、https＝443）',
   iLlmKey:'LiteLLM 等要求 API 金鑰的伺服器才需要填；存在這台的 config.json，之後畫面只顯示「已設定」、不會再顯示金鑰',
   iLlmModel:'選擇 LLM 伺服器上的翻譯模型',

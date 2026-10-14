@@ -72,6 +72,8 @@ WHISPER_DIR="$SCRIPT_DIR/whisper.cpp"
 MODELS_DIR="$WHISPER_DIR/models"
 ARGOS_PKG_DIR="$HOME/.local/share/argos-translate/packages/translate-en_zh-1_9"
 NLLB_MODEL_DIR="$HOME/.local/share/jt-live-whisper/models/nllb-600m"
+M2M100_MODEL_DIR="$HOME/.local/share/jt-live-whisper/models/m2m100-418m"
+MADLAD_MODEL_DIR="$HOME/.local/share/jt-live-whisper/models/madlad-3b"
 
 # ─── 安裝 Log ─────────────────────────────────────────────
 mkdir -p "$SCRIPT_DIR/logs" 2>/dev/null
@@ -1148,6 +1150,58 @@ check_nllb_model() {
             check_ok "NLLB 模型安裝完成"
         else
             check_fail "NLLB 模型下載失敗"
+            echo -e "  ${C_DIM}  請確認網路連線後重新執行安裝${NC}"
+        fi
+    fi
+}
+
+# ─── M2M-100 翻譯模型 ──────────────────────────────
+check_m2m100_model() {
+    section "M2M-100 離線翻譯模型（中日韓英互譯，MIT 授權）"
+
+    if [ -d "$M2M100_MODEL_DIR" ] && [ -f "$M2M100_MODEL_DIR/model.bin" ] && \
+       [ -f "$M2M100_MODEL_DIR/sentencepiece.bpe.model" ]; then
+        check_ok "M2M-100 模型已安裝 ($M2M100_MODEL_DIR)"
+    else
+        check_install "正在下載 M2M-100 418M 模型（約 800MB）..."
+        source "$VENV_DIR/bin/activate"
+        pip install --disable-pip-version-check -q huggingface_hub 2>/dev/null
+        mkdir -p "$M2M100_MODEL_DIR"
+        echo ""
+        hf_download "michaelfeil/ct2fast-m2m100_418M" "M2M-100 模型" "$M2M100_MODEL_DIR"
+        echo ""
+        deactivate
+
+        if [ -f "$M2M100_MODEL_DIR/model.bin" ] && [ -f "$M2M100_MODEL_DIR/sentencepiece.bpe.model" ]; then
+            check_ok "M2M-100 模型安裝完成"
+        else
+            check_fail "M2M-100 模型下載失敗"
+            echo -e "  ${C_DIM}  請確認網路連線後重新執行安裝${NC}"
+        fi
+    fi
+}
+
+# ─── MADLAD-400 翻譯模型 ──────────────────────────────
+check_madlad_model() {
+    section "MADLAD-400 離線翻譯模型（中日韓英互譯，Apache-2.0 授權）"
+
+    if [ -d "$MADLAD_MODEL_DIR" ] && [ -f "$MADLAD_MODEL_DIR/model.bin" ] && \
+       [ -f "$MADLAD_MODEL_DIR/spiece.model" ]; then
+        check_ok "MADLAD-400 模型已安裝 ($MADLAD_MODEL_DIR)"
+    else
+        check_install "正在下載 MADLAD-400 3B 模型（約 3GB）..."
+        source "$VENV_DIR/bin/activate"
+        pip install --disable-pip-version-check -q huggingface_hub 2>/dev/null
+        mkdir -p "$MADLAD_MODEL_DIR"
+        echo ""
+        hf_download "SoybeanMilk/madlad400-3b-mt-ct2-int8_float16" "MADLAD-400 模型" "$MADLAD_MODEL_DIR"
+        echo ""
+        deactivate
+
+        if [ -f "$MADLAD_MODEL_DIR/model.bin" ] && [ -f "$MADLAD_MODEL_DIR/spiece.model" ]; then
+            check_ok "MADLAD-400 模型安裝完成"
+        else
+            check_fail "MADLAD-400 模型下載失敗"
             echo -e "  ${C_DIM}  請確認網路連線後重新執行安裝${NC}"
         fi
     fi
@@ -3298,6 +3352,20 @@ print('found' if found else '')
         echo -e "  ${C_DIM}□ NLLB 離線翻譯  中日韓英互譯，模型非商業授權${NC}"
     fi
 
+    # M2M-100
+    if [ -f "$M2M100_MODEL_DIR/model.bin" ]; then
+        echo -e "  ${C_OK}■${NC} M2M-100 離線翻譯  ${C_DIM}中日韓英互譯，MIT 授權${NC}"
+    else
+        echo -e "  ${C_DIM}□ M2M-100 離線翻譯  中日韓英互譯，MIT 授權${NC}"
+    fi
+
+    # MADLAD-400
+    if [ -f "$MADLAD_MODEL_DIR/model.bin" ]; then
+        echo -e "  ${C_OK}■${NC} MADLAD-400 離線翻譯  ${C_DIM}中日韓英互譯，Apache-2.0 授權${NC}"
+    else
+        echo -e "  ${C_DIM}□ MADLAD-400 離線翻譯  中日韓英互譯，Apache-2.0 授權${NC}"
+    fi
+
     # Moonshine
     if python3 -c "from moonshine_voice import get_model_for_language" &>/dev/null 2>&1; then
         echo -e "  ${C_OK}■${NC} Moonshine 即時辨識  ${C_DIM}英文低延遲${NC}"
@@ -3768,6 +3836,8 @@ check_venv
 check_moonshine
 check_argos_model
 check_nllb_model
+check_m2m100_model
+check_madlad_model
 check_faster_whisper_model
 check_mlx_whisper
 check_qwen_local_mac
